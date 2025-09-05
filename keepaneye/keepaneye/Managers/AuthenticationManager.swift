@@ -6,7 +6,7 @@ import Combine
 class APIClient: ObservableObject {
     static let shared = APIClient()
     
-    private let baseURL = "https://keepaneye-2e2nuzus2-gaurav-agarwals-projects-ee8f97ee.vercel.app/api"
+    private let baseURL = "https://keepaneye-backend.onrender.com/api"
     private var authToken: String?
     private let jsonDecoder: JSONDecoder
     
