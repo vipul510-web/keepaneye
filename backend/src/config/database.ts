@@ -5,12 +5,16 @@ dotenv.config();
 
 const dbConfig = {
   client: 'pg',
-  connection: process.env.DATABASE_URL || {
+  connection: process.env.DATABASE_URL ? {
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  } : {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'keepaneye',
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   },
   pool: {
     min: 2,
@@ -30,7 +34,6 @@ const dbConfig = {
     directory: './src/database/seeds',
   },
   debug: process.env.NODE_ENV === 'development',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 };
 
 export const db = knex(dbConfig);
