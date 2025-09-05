@@ -1,0 +1,1 @@
+{"version":3,"file":"004_fix_feed_items_columns.d.ts","sourceRoot":"","sources":["../../../src/database/migrations/004_fix_feed_items_columns.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,IAAI,EAAE,MAAM,MAAM,CAAC;AAEjC,wBAAsB,EAAE,CAAC,IAAI,EAAE,IAAI,GAAG,OAAO,CAAC,IAAI,CAAC,CAUlD;AAED,wBAAsB,IAAI,CAAC,IAAI,EAAE,IAAI,GAAG,OAAO,CAAC,IAAI,CAAC,CAUpD"}

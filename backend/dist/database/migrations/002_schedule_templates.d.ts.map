@@ -1,0 +1,1 @@
+{"version":3,"file":"002_schedule_templates.d.ts","sourceRoot":"","sources":["../../../src/database/migrations/002_schedule_templates.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,IAAI,EAAE,MAAM,MAAM,CAAC;AAEjC,wBAAsB,EAAE,CAAC,IAAI,EAAE,IAAI,GAAG,OAAO,CAAC,IAAI,CAAC,CA2ClD;AAED,wBAAsB,IAAI,CAAC,IAAI,EAAE,IAAI,GAAG,OAAO,CAAC,IAAI,CAAC,CAmBpD"}

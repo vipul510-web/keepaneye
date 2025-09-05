@@ -1,0 +1,11 @@
+# Railway deployment configuration
+# This file tells Railway how to build and run your application
+
+# Build command
+build: npm run build
+
+# Start command
+start: npm start
+
+# Node.js version
+node_version: 18
