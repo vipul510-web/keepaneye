@@ -1,6 +1,7 @@
 import Foundation
 import LocalAuthentication
 import Combine
+import Security
 
 // MARK: - API Client (temporary placement)
 class APIClient: ObservableObject {
@@ -651,6 +652,8 @@ class AuthenticationManager: ObservableObject {
     
     // MARK: - Session Management
     private func checkExistingSession() {
+        print("🔍 Checking for existing session...")
+        
         // Restore caregiver session if available (ensure JWT is set too)
         if let caregiverData = keychain.data(forKey: "currentCaregiver"),
            let caregiver = try? JSONDecoder().decode(Caregiver.self, from: caregiverData) {
@@ -659,6 +662,7 @@ class AuthenticationManager: ObservableObject {
             currentUser = nil
             if let token = keychain.string(forKey: "authToken") {
                 apiClient.setAuthToken(token)
+                print("✅ Found saved auth token for caregiver: \(token.prefix(20))...")
             }
             isAuthenticated = true
             print("✅ Restored existing session for caregiver: \(caregiver.email)")
@@ -673,9 +677,12 @@ class AuthenticationManager: ObservableObject {
             currentCaregiver = nil
             if let token = keychain.string(forKey: "authToken") {
                 apiClient.setAuthToken(token)
+                print("✅ Found saved auth token for user: \(token.prefix(20))...")
             }
             isAuthenticated = true
             print("✅ Restored existing session for user: \(user.email)")
+        } else {
+            print("❌ No saved session found")
         }
     }
     
@@ -697,8 +704,12 @@ class AuthenticationManager: ObservableObject {
             keychain.removeObject(forKey: "currentCaregiver")
             if let userData = try? JSONEncoder().encode(response.user) {
                 keychain.set(userData, forKey: "currentUser")
+                print("💾 Saved user data to keychain")
+            } else {
+                print("❌ Failed to save user data to keychain")
             }
             keychain.set(response.token, forKey: "authToken")
+            print("💾 Saved auth token to keychain")
             
             await MainActor.run {
                 // IMPORTANT: Clear currentCaregiver and set currentUser to avoid role confusion
