@@ -44,86 +44,132 @@ class AuthenticationManager: ObservableObject {
     
     // MARK: - Session Management
     private func checkExistingSession() {
-        if let userData = keychain.data(forKey: "currentUser"),
-           let user = try? JSONDecoder().decode(User.self, from: userData) {
-            currentUser = user
-            isAuthenticated = true
+        // Check for saved auth token
+        if let tokenData = keychain.data(forKey: "authToken"),
+           let token = String(data: tokenData, encoding: .utf8) {
+            // Restore token to APIClient
+            APIClient.shared.setAuthToken(token)
+            
+            // Check for saved user data
+            if let userData = keychain.data(forKey: "currentUser"),
+               let user = try? JSONDecoder().decode(User.self, from: userData) {
+                currentUser = user
+                isAuthenticated = true
+                print("✅ Restored existing session for user: \(user.email)")
+            } else {
+                // If we have a token but no user data, try to fetch user info
+                Task {
+                    await validateTokenAndFetchUser(token)
+                }
+            }
+        }
+    }
+    
+    private func validateTokenAndFetchUser(_ token: String) async {
+        do {
+            let user: User = try await APIClient.shared.makeRequest("/auth/me")
+            await MainActor.run {
+                self.currentUser = user
+                self.isAuthenticated = true
+                // Save user data to keychain
+                if let userData = try? JSONEncoder().encode(user) {
+                    self.keychain.set(userData, forKey: "currentUser")
+                }
+                print("✅ Validated token and restored user: \(user.email)")
+            }
+        } catch {
+            print("❌ Token validation failed: \(error)")
+            // Token is invalid, clear everything
+            await MainActor.run {
+                self.signOut()
+            }
         }
     }
     
     func signIn(email: String, password: String) async -> Result<User, AuthError> {
-        // In a real app, this would make an API call to your backend
-        // For now, we'll simulate authentication
-        
         do {
-            // Simulate network delay
-            try await Task.sleep(nanoseconds: 1_000_000_000)
+            let loginData = [
+                "email": email,
+                "password": password
+            ]
             
-            // Mock user data
-            let user = User(
-                id: UUID().uuidString,
-                email: email,
-                firstName: "John",
-                lastName: "Doe",
-                role: .parent,
-                profileImageURL: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            )
+            let jsonData = try JSONSerialization.data(withJSONObject: loginData)
+            let response: LoginResponse = try await APIClient.shared.makeRequest("/auth/login", method: "POST", body: jsonData)
             
-            // Save to keychain
-            if let userData = try? JSONEncoder().encode(user) {
+            // Save auth token to keychain
+            if let tokenData = response.token.data(using: .utf8) {
+                keychain.set(tokenData, forKey: "authToken")
+            }
+            
+            // Save user data to keychain
+            if let userData = try? JSONEncoder().encode(response.user) {
                 keychain.set(userData, forKey: "currentUser")
             }
             
             await MainActor.run {
-                self.currentUser = user
+                self.currentUser = response.user
                 self.isAuthenticated = true
             }
             
-            return .success(user)
+            print("✅ User signed in successfully: \(response.user.email)")
+            return .success(response.user)
+            
         } catch {
+            print("❌ Sign in failed: \(error)")
             return .failure(.networkError)
         }
     }
     
     func signUp(email: String, password: String, firstName: String, lastName: String, role: UserRole) async -> Result<User, AuthError> {
         do {
-            // Simulate network delay
-            try await Task.sleep(nanoseconds: 1_000_000_000)
+            let signupData = [
+                "email": email,
+                "password": password,
+                "firstName": firstName,
+                "lastName": lastName,
+                "role": role.rawValue
+            ]
             
-            // Mock user creation
-            let user = User(
-                id: UUID().uuidString,
-                email: email,
-                firstName: firstName,
-                lastName: lastName,
-                role: role,
-                profileImageURL: nil,
-                createdAt: Date(),
-                updatedAt: Date()
-            )
+            let jsonData = try JSONSerialization.data(withJSONObject: signupData)
+            let response: LoginResponse = try await APIClient.shared.makeRequest("/auth/register", method: "POST", body: jsonData)
             
-            // Save to keychain
-            if let userData = try? JSONEncoder().encode(user) {
+            // Save auth token to keychain
+            if let tokenData = response.token.data(using: .utf8) {
+                keychain.set(tokenData, forKey: "authToken")
+            }
+            
+            // Save user data to keychain
+            if let userData = try? JSONEncoder().encode(response.user) {
                 keychain.set(userData, forKey: "currentUser")
             }
             
             await MainActor.run {
-                self.currentUser = user
+                self.currentUser = response.user
                 self.isAuthenticated = true
             }
             
-            return .success(user)
+            print("✅ User signed up successfully: \(response.user.email)")
+            return .success(response.user)
+            
         } catch {
+            print("❌ Sign up failed: \(error)")
             return .failure(.networkError)
         }
     }
     
     func signOut() {
+        // Clear auth token from APIClient
+        APIClient.shared.clearAuthToken()
+        
+        // Clear keychain data
         keychain.removeObject(forKey: "currentUser")
+        keychain.removeObject(forKey: "authToken")
+        
+        // Clear local state
         currentUser = nil
         isAuthenticated = false
+        
+        print("✅ User signed out successfully")
     }
     
     // MARK: - Security
@@ -141,6 +187,13 @@ class AuthenticationManager: ObservableObject {
         // This would typically require user to authenticate first
         return biometricType != .none
     }
+}
+
+// MARK: - Auth Response Models
+struct LoginResponse: Codable {
+    let message: String
+    let user: User
+    let token: String
 }
 
 // MARK: - Auth Errors
