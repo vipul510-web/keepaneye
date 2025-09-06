@@ -702,12 +702,14 @@ class AuthenticationManager: ObservableObject {
             // Save to keychain
             // IMPORTANT: Clear any existing caregiver session to avoid role confusion
             keychain.removeObject(forKey: "currentCaregiver")
+            print("🔍 About to save user data to keychain...")
             if let userData = try? JSONEncoder().encode(response.user) {
                 keychain.set(userData, forKey: "currentUser")
                 print("💾 Saved user data to keychain")
             } else {
                 print("❌ Failed to save user data to keychain")
             }
+            print("🔍 About to save auth token to keychain...")
             keychain.set(response.token, forKey: "authToken")
             print("💾 Saved auth token to keychain")
             
