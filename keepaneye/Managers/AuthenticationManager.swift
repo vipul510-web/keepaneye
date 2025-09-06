@@ -1,6 +1,7 @@
 import Foundation
 import LocalAuthentication
 import Combine
+import Security
 
 class AuthenticationManager: ObservableObject {
     @Published var isAuthenticated = false
@@ -44,9 +45,13 @@ class AuthenticationManager: ObservableObject {
     
     // MARK: - Session Management
     private func checkExistingSession() {
+        print("🔍 Checking for existing session...")
+        
         // Check for saved auth token
         if let tokenData = keychain.data(forKey: "authToken"),
            let token = String(data: tokenData, encoding: .utf8) {
+            print("✅ Found saved auth token: \(token.prefix(20))...")
+            
             // Restore token to APIClient
             APIClient.shared.setAuthToken(token)
             
@@ -57,11 +62,14 @@ class AuthenticationManager: ObservableObject {
                 isAuthenticated = true
                 print("✅ Restored existing session for user: \(user.email)")
             } else {
+                print("⚠️ No user data found, validating token...")
                 // If we have a token but no user data, try to fetch user info
                 Task {
                     await validateTokenAndFetchUser(token)
                 }
             }
+        } else {
+            print("❌ No saved auth token found")
         }
     }
     
@@ -99,11 +107,17 @@ class AuthenticationManager: ObservableObject {
             // Save auth token to keychain
             if let tokenData = response.token.data(using: .utf8) {
                 keychain.set(tokenData, forKey: "authToken")
+                print("💾 Saved auth token to keychain")
+            } else {
+                print("❌ Failed to save auth token to keychain")
             }
             
             // Save user data to keychain
             if let userData = try? JSONEncoder().encode(response.user) {
                 keychain.set(userData, forKey: "currentUser")
+                print("💾 Saved user data to keychain")
+            } else {
+                print("❌ Failed to save user data to keychain")
             }
             
             await MainActor.run {
